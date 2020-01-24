@@ -10,5 +10,5 @@ class Route:
 
 ROUTES = (
     Route('/todo_lists', todo_lists, methods=('GET', 'POST')),
-    Route('/todo_lists/<todo_id>', todo_list, methods=('DELETE', 'PUT')),
+    Route('/todo_lists/<todo_id>', todo_list, methods=('GET', 'DELETE', 'PUT')),
 )

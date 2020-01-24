@@ -19,6 +19,13 @@ def todo_lists():
 
 def todo_list(todo_id):
     todos = current_app.db.tododb
+    if request.method == 'GET':
+        todo = todos.find_one({'_id': ObjectId(todo_id)})
+        if todo:
+            return jsonify({
+                'id': str(todo['_id']),
+                'name': todo['name']
+            })
     if request.method == 'DELETE':
         todo = todos.find_one_and_delete({'_id': ObjectId(todo_id)})
         if todo:
