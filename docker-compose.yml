@@ -1,5 +1,13 @@
 version: "3.7"
 services:
+  web:
+    build: .
+    ports:
+    - "5000:5000"
+    volumes:
+    - .:/todo-lists
+#    links:
+#    - db
   db:
     image: mongo
     ports:
