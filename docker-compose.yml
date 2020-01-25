@@ -3,12 +3,14 @@ services:
   web:
     build: .
     ports:
-    - "5000:5000"
+      - "5000:5000"
     volumes:
-    - .:/todo-lists
-#    links:
-#    - db
-  db:
+      - .:/todo-lists
+    depends_on:
+      - mongodb
+    environment:
+      - DB_URL=mongodb
+  mongodb:
     image: mongo
     ports:
       - 27017-27019:27017-27019

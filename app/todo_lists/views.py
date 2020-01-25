@@ -1,44 +1,51 @@
-from pymongo import ReturnDocument
-from bson import ObjectId
+from flask_expects_json import expects_json
 from flask import request, jsonify, current_app
+from ..exceptions import DBException
+from .models import TodoList
 
 
-def todo_lists():
-    todos = current_app.db.tododb
-    if request.method == 'POST':
-        todos.insert({'name': request.json.get('name')})
-        return {'name': request.form.get('name')}
-    if request.method == 'GET':
-        return jsonify([
-            {
-                'id': str(todo['_id']),
-                'name': todo['name']
-            } for todo in todos.find()
-        ])
+expected_request_body = {
+    'type': 'object',
+    'properties': {
+        'name': {'type': 'string'}
+    },
+    'required': ['name']
+}
 
 
-def todo_list(todo_id):
-    todos = current_app.db.tododb
-    if request.method == 'GET':
-        todo = todos.find_one({'_id': ObjectId(todo_id)})
-        if todo:
-            return jsonify({
-                'id': str(todo['_id']),
-                'name': todo['name']
-            })
-    if request.method == 'DELETE':
-        todo = todos.find_one_and_delete({'_id': ObjectId(todo_id)})
-        if todo:
-            return 'Successfully deleted!'
-    if request.method == 'PUT':
-        updated_todo = todos.find_one_and_update(
-            {'_id': ObjectId(todo_id)},
-            {'$set': {'name': request.json.get('name')}},
-            return_document=ReturnDocument.AFTER
+def get_todo_lists():
+    return jsonify(current_app.todo_lists.query())
+
+
+@expects_json(expected_request_body)
+def create_todo_list():
+    return jsonify(current_app.todo_lists.add(TodoList(**request.json))), 201
+
+
+def delete_todo_list(todo_id):
+    items = current_app.todo_items.query(todo_list_id=todo_id)
+    for item in items:
+        current_app.todo_items.remove(item)
+
+    message = 'Successfully deleted'
+    try:
+        current_app.todo_lists.remove(TodoList(id=todo_id))
+    except DBException:
+        message = 'Todo list already deleted'
+    return {
+        'status': 'success',
+        'message': message
+    }
+
+
+@expects_json(expected_request_body)
+def update_todo_list(todo_id):
+    input_todo_list = TodoList(id=todo_id)
+    try:
+        updated_list = current_app.todo_lists.update(
+            input_todo_list, TodoList(**request.json)
         )
-        if updated_todo:
-            return {
-                'id': str(updated_todo['_id']),
-                'name': updated_todo['name']
-            }
-    return f'Unable to find todo list by given id={todo_id}', 404
+        return jsonify(updated_list)
+    except DBException as e:
+        e.code = 400
+        raise e
